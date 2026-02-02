@@ -1,0 +1,152 @@
+// code bby
+
+#include <unordered_map>
+#include <iostream>
+#include <string>
+#include <set>
+#include <vector>
+
+using namespace std;
+
+const int START_STATE = 0;
+const string EPSILON = "eps";
+
+struct Node {
+    int n;
+    bool f;
+    unordered_multimap <string, int> delta;
+
+    Node() = default;
+
+    Node(int n) {
+        this->n = n;
+        this->f = false;
+    }
+
+    void insert_delta(string symbol, int state) {
+        this->delta.emplace(symbol, state);
+        cout << "adding to node n: " << this->n << " " << symbol << " " << state << endl;
+        cout << "delta: " << endl;
+        for (const auto& [id, name] : delta) {
+            std::cout << "string : " << id << " state: " << name << std::endl;
+        }
+    }
+
+    bool operator<(const Node& other) const {
+        return f > other.f;
+    }
+
+    vector<int> get_next(string symbol) {
+        vector<int> next_states;
+
+        cout << "symbol: " << symbol << endl;
+        //find all next states
+        auto [begin_it, end_it] = this->delta.equal_range(symbol);
+        for(auto it = begin_it; it != end_it; ++it){
+            cout << "N " << this->n << " goes to " << it->second << " on " << symbol << endl;
+            next_states.push_back(it->second);
+        }
+
+        //follow all epsilon transitions
+        auto [it_begin, it_end] = this->delta.equal_range(EPSILON);
+
+        for(auto it = it_begin; it != it_end; ++it){
+            cout << "N " << this->n << " goes to " << it->second << " on " << EPSILON << endl;
+            next_states.push_back(it->second);
+        }
+
+        cout << endl;
+
+        return next_states;
+    }
+};
+
+void simulate(string strg, const unordered_map<int, Node> &nfa) {
+    set<Node> cur_states;
+
+    cout << endl << "simulation for " << strg << " beginning." << endl;
+
+    auto node = nfa.find(START_STATE);
+    if (node != nfa.end()){
+        cur_states.insert(node->second);
+    } else {
+        cout << "reject" << endl;
+        return;
+    }
+
+    for(const char& c : strg){
+        string symbol{c};
+        set<Node> new_states;
+        while(!cur_states.empty()){
+            auto state = cur_states.extract(cur_states.begin());
+
+            vector<int> next_states = state.value().get_next(symbol);
+            for (int state : next_states) {
+                auto node = nfa.find(state);
+                if(node != nfa.end()){
+                    new_states.insert(node->second);
+                }
+            }
+        }
+        cur_states = new_states;
+        if(cur_states.empty()){
+            break;
+        }
+    }
+
+    if(cur_states.begin() != cur_states.end() && cur_states.begin()->f == true){
+        cout << "accept" << endl;
+    }else{
+        cout << "reject" << endl;
+    }
+
+    cout << endl << endl;
+    return;
+}
+
+
+int main() {
+    unordered_map<int, Node> nfa;
+
+    int n, m, f;
+
+    cin >> n;
+    cin >> m;
+
+    //cout << n << " " << m << " " << endl;
+
+    int a, c;
+    char b;
+    for(int i = 0; i < m; i++) {
+        cin >> a >> b >> c;
+        //idx with a to map of nodes
+        //add b -> c to transition function (delta) map
+        //cout << a << " " << b << " " << c << endl;
+        string symbol{b};
+        nfa.try_emplace(a,a);
+        nfa[a].insert_delta(symbol, c);
+    }
+
+    cin >> f;
+    cout << f << endl;
+    for(int i = 0; i < f; i++){
+        cin >> a;
+        if(nfa.find(a) != nfa.end()){
+            nfa[a].f = true;
+        }
+        //cout << "setting final state: " << a << " " << nfa[a].f << endl;
+        //insert a to set of final states
+    }
+   
+    int s;
+    cin >> s;
+    string strg;
+    for(int i = 0 ;i < s; i++){
+        cin >> strg;
+        simulate(strg, std::ref(nfa));
+        //cout << strg << endl;
+    }
+
+    return 0;
+}
+
