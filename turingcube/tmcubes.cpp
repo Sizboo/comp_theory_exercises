@@ -19,7 +19,6 @@ struct CounterMachine {
 
         //setup begin | blank
         ut.insertBegin(&a_tape);
-
         //setup begin | blank
         ut.insertBegin(&counter_tape);
     }
@@ -35,21 +34,21 @@ struct CounterMachine {
     }
 
     void fin_state(){
-        if(a_tape.read() == count){
-            a_tape.write(marked);
+        if(a_tape.read() == marked){
+            a_tape.write(count);
             a_tape.right();
             fin_state();
         }
         else if(a_tape.read() == BLANK_SYMBOL){
-            ut.shiftAndInsert(&a_tape,marked);
+            ut.shiftAndInsert(&a_tape, count);
             ut.rewind(&a_tape);
         }
-
     }
 
     void forward_state(){
        if(a_tape.read() == count){
            ut.findRight(&a_tape, BLANK_SYMBOL);
+           forward_state();
        }
        else if(a_tape.read() == BLANK_SYMBOL){
            a_tape.left();
@@ -101,27 +100,29 @@ int main() {
                 input_tm.right();
             }
             else if(cm.counter_tape.read() == BLANK_SYMBOL){
-                std::cout << "println" << std::endl;
                 cm.counter_tape = TuringMachineTape();
                 ut.insertBegin(&cm.counter_tape);
                 ut.rewind(&input_tm);
                 cm.start_state();
+                ut.rewind(&cm.counter_tape);
                 continue;
             }
         }
         else if(input_tm.read() == BLANK_SYMBOL){
-            if(cm.counter_tape.read() == count){
+            if(cm.counter_tape.read() == marked){
                 input_tm.reject();
                 break;
             }
             else if(cm.counter_tape.read() == BLANK_SYMBOL){
                 input_tm.accept();
                 break;
+            }else {
+                std:: cout << "Random error" << std::endl;
+                break;
             }
         }
     }
 
-    //input_tm.debug(&std::cout);
 
    return 0;
 }
