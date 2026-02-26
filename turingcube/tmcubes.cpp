@@ -1,12 +1,17 @@
 #include "TuringMachineTape.h"
 #include <iostream>
 
+//ya ya. i know i should've capitalized. I just didn't feel like refactoring
+//all refs. sorry.
+const int count = 'x';
+const int marked = 0;
+const int INPUT = 'a';
+
+//beast machine. these r kind of fun.
 struct CounterMachine {
     TuringMachineTape a_tape;
     TuringMachineTape counter_tape;
     TuringMachineUtility ut;
-    int count = 'x';
-    int marked = 0;
 
     CounterMachine() {
         a_tape = TuringMachineTape();
@@ -24,20 +29,20 @@ struct CounterMachine {
             a_tape.right();
             forward_state();
         }
-        if(a_tape.read() == BLANK_SYMBOL){
+        else if(a_tape.read() == BLANK_SYMBOL){
             fin_state();
         }
     }
 
     void fin_state(){
-        if(a_tape.read() == marked){
-            a_tape.write(count);
+        if(a_tape.read() == count){
+            a_tape.write(marked);
             a_tape.right();
             fin_state();
         }
-        if(a_tape.read() == BLANK_SYMBOL){
-            a_tape.write(count);
-            ut.rewind(a_tape);
+        else if(a_tape.read() == BLANK_SYMBOL){
+            ut.shiftAndInsert(&a_tape,marked);
+            ut.rewind(&a_tape);
         }
 
     }
@@ -46,7 +51,7 @@ struct CounterMachine {
        if(a_tape.read() == count){
            ut.findRight(&a_tape, BLANK_SYMBOL);
        }
-       if(a_tape.read() == BLANK_SYMBOL){
+       else if(a_tape.read() == BLANK_SYMBOL){
            a_tape.left();
            q1_state();
        }
@@ -58,11 +63,12 @@ struct CounterMachine {
             a_tape.left();
             q1_state();
         }
-        if(a_tape.read() == count){
+        else if(a_tape.read() == count){
+            a_tape.write(marked);
             a_tape.right();
             q2_state();
         }
-        if(a_tape.read() == BEGIN_SYMBOL){
+        else if(a_tape.read() == BEGIN_SYMBOL){
             a_tape.right();
             fin_state();
         }
@@ -74,7 +80,7 @@ struct CounterMachine {
             a_tape.right();
             q2_state();
         }
-        if(a_tape.read() == BLANK_SYMBOL){
+        else if(a_tape.read() == BLANK_SYMBOL){
             a_tape.left();
             q1_state();
         }
@@ -83,8 +89,39 @@ struct CounterMachine {
 
 int main() {
     TuringMachineTape input_tm = TuringMachineTape(&std::cin);
+    TuringMachineUtility ut;
+    CounterMachine cm = CounterMachine();
 
-    input_tm.debug(&std::cout);
+    ut.insertBegin(&input_tm);
+
+    while(1){
+        if(input_tm.read() == INPUT){
+            if (cm.counter_tape.read() == marked){
+                cm.counter_tape.right();
+                input_tm.right();
+            }
+            else if(cm.counter_tape.read() == BLANK_SYMBOL){
+                std::cout << "println" << std::endl;
+                cm.counter_tape = TuringMachineTape();
+                ut.insertBegin(&cm.counter_tape);
+                ut.rewind(&input_tm);
+                cm.start_state();
+                continue;
+            }
+        }
+        else if(input_tm.read() == BLANK_SYMBOL){
+            if(cm.counter_tape.read() == count){
+                input_tm.reject();
+                break;
+            }
+            else if(cm.counter_tape.read() == BLANK_SYMBOL){
+                input_tm.accept();
+                break;
+            }
+        }
+    }
+
+    //input_tm.debug(&std::cout);
 
    return 0;
 }
