@@ -1,115 +1,148 @@
 #include "TuringMachineTape.h"
 #include <iostream>
 
-//ya ya. i know i should've capitalized. I just didn't feel like refactoring
-//all refs. sorry.
-const int count = 'x';
-const int marked = 0;
+const int COUNT = 'x';
+const int MARKED = 0;
 const int INPUT = 'a';
+const TuringMachineUtility UT;
 
-//beast machine. these r kind of fun.
-struct CounterMachine {
+class CounterMachine {
+public:
     TuringMachineTape a_tape;
+    TuringMachineTape sqr_tape;
     TuringMachineTape counter_tape;
-    TuringMachineUtility ut;
 
     CounterMachine() {
         a_tape = TuringMachineTape();
+        sqr_tape = TuringMachineTape();
+        //counter_tape = TuringMachineTape();
+
+        UT.insertBegin(&a_tape);
+        UT.insertBegin(&sqr_tape);
+        //UT.insertBegin(&counter_tape);
+    }
+
+    void start_cube_machine(){
+        s_start_st();
+    }
+
+    void find_next_cube(){
+        s_restart();
+
         counter_tape = TuringMachineTape();
-
-        //setup begin | blank
-        ut.insertBegin(&a_tape);
-        //setup begin | blank
-        ut.insertBegin(&counter_tape);
+        UT.insertBegin(&counter_tape);
+        
+        UT.rewind(&a_tape);
+        q3_st();
     }
 
-    void start_state(){
-        if(a_tape.read() == count){
-            a_tape.right();
-            forward_state();
-        }
-        else if(a_tape.read() == BLANK_SYMBOL){
-            fin_state();
-        }
-    }
-
-    void fin_state(){
-        if(a_tape.read() == marked){
-            a_tape.write(count);
-            a_tape.right();
-            fin_state();
-        }
-        else if(a_tape.read() == BLANK_SYMBOL){
-            ut.shiftAndInsert(&a_tape, count);
-            ut.rewind(&a_tape);
-        }
-    }
-
-    void forward_state(){
-       if(a_tape.read() == count){
-           ut.findRight(&a_tape, BLANK_SYMBOL);
-           forward_state();
-       }
-       else if(a_tape.read() == BLANK_SYMBOL){
-           a_tape.left();
-           q1_state();
-       }
-    }
-
-    void q1_state() {
-        if(a_tape.read() == marked){
-            ut.shiftAndInsert(&counter_tape, marked);
+private:
+    void s_start_st(){
+        if(a_tape.read() == COUNT){
+            a_tape.write(MARKED);
             a_tape.left();
-            q1_state();
+            q1_st();
         }
-        else if(a_tape.read() == count){
-            a_tape.write(marked);
-            a_tape.right();
-            q2_state();
-        }
-        else if(a_tape.read() == BEGIN_SYMBOL){
-            a_tape.right();
-            fin_state();
+        else if(a_tape.read() == BLANK_SYMBOL){
+            UT.shiftAndInsert(&a_tape, COUNT);
+            a_tape.left();
         }
     }
 
-    void q2_state() {
-        if(a_tape.read() == marked){
-            ut.shiftAndInsert(&counter_tape, marked);
-            a_tape.right();
-            q2_state();
-        }
-        else if(a_tape.read() == BLANK_SYMBOL){
+    void s_restart(){
+        if(a_tape.read() == COUNT){
+            a_tape.write(MARKED);
             a_tape.left();
-            q1_state();
+            q1_st();
+        }
+        else {
+            std::cout << "catastrphic restart error" << std::endl;
         }
     }
+
+    void q1_st(){
+        if(a_tape.read() == BEGIN_SYMBOL){
+            a_tape.right();
+            q2_st();
+        }
+        else if(a_tape.read() == MARKED){
+            UT.shiftAndInsert(&sqr_tape, MARKED);
+            a_tape.left();
+            q1_st();
+        }
+        else {
+            std::cout << "catastrophic q1 error" << std::endl;
+        }
+    }
+
+    void q2_st(){
+        if(a_tape.read() == MARKED){
+            UT.shiftAndInsert(&sqr_tape, MARKED);
+            a_tape.right();
+            q2_st();
+        }
+        else if(a_tape.read() == COUNT){
+            a_tape.write(MARKED);
+            a_tape.left();
+            q1_st();
+        }
+        else if(a_tape.read() == BLANK_SYMBOL){
+            UT.shiftAndInsert(&a_tape, COUNT);
+            a_tape.left();
+        }
+        else{
+            std::cout << "catostrophic q2 error" << std::endl;
+        }
+    }
+
+    void q3_st() {
+        if(a_tape.read() == COUNT){
+            UT.rewind(&counter_tape);
+        }
+        else if(a_tape.read() == MARKED){
+            UT.rewind(&sqr_tape);
+            q4_st();
+        }
+    }
+    
+    void q4_st(){
+        if(sqr_tape.read() == MARKED){
+            counter_tape.write(MARKED);
+            counter_tape.right();
+            sqr_tape.right();
+            q4_st();
+        }
+        else if(sqr_tape.read() == BLANK_SYMBOL){
+            a_tape.right();
+            q3_st();
+        }
+    }
+
+
 };
 
 int main() {
     TuringMachineTape input_tm = TuringMachineTape(&std::cin);
-    TuringMachineUtility ut;
     CounterMachine cm = CounterMachine();
 
-    ut.insertBegin(&input_tm);
+    UT.insertBegin(&input_tm);
+    cm.start_cube_machine();
 
     while(1){
         if(input_tm.read() == INPUT){
-            if (cm.counter_tape.read() == marked){
+            if (cm.counter_tape.read() == MARKED){
                 cm.counter_tape.right();
                 input_tm.right();
             }
             else if(cm.counter_tape.read() == BLANK_SYMBOL){
-                cm.counter_tape = TuringMachineTape();
-                ut.insertBegin(&cm.counter_tape);
-                ut.rewind(&input_tm);
-                cm.start_state();
-                ut.rewind(&cm.counter_tape);
+                UT.rewind(&input_tm);
+                cm.find_next_cube();
+
                 continue;
             }
         }
         else if(input_tm.read() == BLANK_SYMBOL){
-            if(cm.counter_tape.read() == marked){
+            if(cm.counter_tape.read() == MARKED){
                 input_tm.reject();
                 break;
             }
